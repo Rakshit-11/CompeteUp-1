@@ -67,7 +67,7 @@ const Orders = async ({ searchParams }: SearchParamProps) => {
                       <td className="min-w-[150px] py-4">{row.metadata?.graduationEndYear || 'N/A'}</td>
                       <td className="min-w-[150px] py-4">{row.metadata?.phoneNumber || 'N/A'}</td>
                       <td className="min-w-[100px] py-4">{row.metadata?.gender || 'N/A'}</td>
-                      <td className="min-w-[150px] py-4">{row.metadata?.stream || 'N/A'}</td>
+                      <td className="min-w-[150px] py-4">{row.metadata?.Course || 'N/A'}</td>
                       <td className="min-w-[150px] py-4">{row.metadata?.specialization || 'N/A'}</td>
                     </tr>
                   ))}

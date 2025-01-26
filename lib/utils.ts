@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import qs from 'query-string';
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 import { UrlQueryParams, RemoveUrlQueryParams } from '@/types';
 
@@ -68,6 +69,16 @@ export function formUrlQuery({ params, key, value }: UrlQueryParams) {
     },
     { skipNull: true }
   );
+}
+
+export async function getUserUnsafeMetadata(userId: string) {
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    return user?.unsafeMetadata || {}; // Return metadata or an empty object
+  } catch (error) {
+    console.error("Error fetching user metadata:", error);
+    return {};
+  }
 }
 
 export function removeKeysFromQuery({ params, keysToRemove }: RemoveUrlQueryParams) {

@@ -13,7 +13,7 @@ export interface IOrder extends Document {
       graduationEndYear?: string
       phoneNumber?: string
       gender?: string
-      stream?: string
+      Course?: string
       specialization?: string
     }
   }
@@ -39,7 +39,7 @@ export type IOrderItem = {
     graduationEndYear?: string
     phoneNumber?: string
     gender?: string
-    stream?: string
+    Course?: string
     specialization?: string
   }
 }
