@@ -75,7 +75,7 @@ const Onboarding = () => {
         return;
       }
 
-      // Update Clerk user unsafeMetadata
+      // Update Clerk user's unsafeMetadata
       await user.update({
         unsafeMetadata: {
           collegeName: formData.collegeName,

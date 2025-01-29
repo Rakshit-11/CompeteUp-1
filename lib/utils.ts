@@ -74,7 +74,7 @@ export function formUrlQuery({ params, key, value }: UrlQueryParams) {
 export async function getUserUnsafeMetadata(userId: string) {
   try {
     const user = await clerkClient.users.getUser(userId);
-    return user?.unsafeMetadata || {}; // Return metadata or an empty object
+    return user.unsafeMetadata || {}; // Return metadata or an empty object
   } catch (error) {
     console.error("Error fetching user metadata:", error);
     return {};
