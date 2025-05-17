@@ -1,3 +1,5 @@
+'use server';
+
 import mongoose, { Connection } from 'mongoose';
 import { handleError, ErrorType } from '../utils';
 
@@ -17,6 +19,10 @@ if (!MONGODB_URI) {
 }
 
 async function createConnection(retryCount = 0): Promise<Connection> {
+  if (!MONGODB_URI) {
+    throw new Error('MongoDB URI is required but not provided');
+  }
+
   const opts = {
     bufferCommands: false,
     autoIndex: process.env.NODE_ENV !== 'production', // Don't build indexes in production
@@ -74,6 +80,11 @@ async function createConnection(retryCount = 0): Promise<Connection> {
 }
 
 export const connectToDatabase = async () => {
+  if (process.env.NODE_ENV === 'development') {
+    // Set mongoose debug mode only in development
+    mongoose.set('debug', true);
+  }
+
   try {
     if (cached.conn) {
       return cached.conn;

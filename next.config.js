@@ -9,6 +9,15 @@ const nextConfig = {
         port: ''
       }
     ]
+  },
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'competeup.vercel.app']
+    }
+  },
+  webpack: (config) => {
+    config.externals = [...config.externals, 'mongoose'];
+    return config;
   }
 }
 
