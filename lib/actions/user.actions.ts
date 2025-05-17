@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
+import { clerkClient } from '@clerk/nextjs'
 
 import { connectToDatabase } from '@/lib/database'
 import User from '@/lib/database/models/user.model'
@@ -11,11 +12,22 @@ import { handleError } from '@/lib/utils'
 
 import { CreateUserParams, UpdateUserParams } from '@/types'
 
+export const runtime = 'nodejs'
+
 export async function createUser(user: CreateUserParams) {
   try {
     await connectToDatabase()
 
     const newUser = await User.create(user)
+
+    // Update Clerk user metadata
+    await clerkClient.users.updateUserMetadata(user.clerkId, {
+      publicMetadata: {
+        userId: newUser._id,
+        hasCompletedProfile: false
+      }
+    })
+
     return JSON.parse(JSON.stringify(newUser))
   } catch (error) {
     handleError(error)
@@ -39,10 +51,10 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
   try {
     await connectToDatabase()
 
-    const existingUser = await User.findOne({ clerkId });
+    const existingUser = await User.findOne({ clerkId })
 
     if (!existingUser) {
-      throw new Error('User not found');
+      throw new Error('User not found')
     }
 
     const updateFields = {
@@ -59,7 +71,7 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
         username: user.username || existingUser.username,
         photo: user.photo || existingUser.photo
       }
-    };
+    }
 
     const updatedUser = await User.findOneAndUpdate(
       { clerkId },
@@ -69,10 +81,19 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
         runValidators: true,
         upsert: false
       }
-    );
+    )
 
     if (!updatedUser) {
-      throw new Error('User update failed');
+      throw new Error('User update failed')
+    }
+
+    // Update Clerk user metadata
+    if (user.hasCompletedProfile) {
+      await clerkClient.users.updateUserMetadata(clerkId, {
+        publicMetadata: {
+          hasCompletedProfile: true
+        }
+      })
     }
     
     return JSON.parse(JSON.stringify(updatedUser))

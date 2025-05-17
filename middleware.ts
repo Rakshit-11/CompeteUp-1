@@ -1,7 +1,17 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getUserById } from "@/lib/actions/user.actions";
+
+// Define the session claims interface
+interface CustomPublicMetadata {
+  hasCompletedProfile?: boolean;
+}
+
+interface CustomSessionClaims {
+  metadata?: {
+    hasCompletedProfile?: boolean;
+  };
+}
 
 export default authMiddleware({
   publicRoutes: [
@@ -20,16 +30,13 @@ export default authMiddleware({
   async afterAuth(auth, req) {
     // If the user is logged in and trying to access a protected route
     if (auth.userId && !auth.isPublicRoute) {
-      try {
-        const user = await getUserById(auth.userId);
-        
-        // If user hasn't completed their profile and isn't already on the onboarding page
-        if (!user?.hasCompletedProfile && !req.nextUrl.pathname.startsWith('/onboarding')) {
-          const onboarding = new URL('/onboarding', req.url);
-          return NextResponse.redirect(onboarding);
-        }
-      } catch (error) {
-        console.error('Error in middleware:', error);
+      const sessionClaims = auth.sessionClaims as CustomSessionClaims;
+      const hasCompletedProfile = sessionClaims?.metadata?.hasCompletedProfile;
+      
+      // If user hasn't completed their profile and isn't already on the onboarding page
+      if (!hasCompletedProfile && !req.nextUrl.pathname.startsWith('/onboarding')) {
+        const onboarding = new URL('/onboarding', req.url);
+        return NextResponse.redirect(onboarding);
       }
     }
 
@@ -44,4 +51,8 @@ export default authMiddleware({
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };
+
+export function middleware(request: NextRequest) {
+  return NextResponse.next()
+}
  

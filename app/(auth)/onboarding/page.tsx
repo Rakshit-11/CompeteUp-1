@@ -1,19 +1,27 @@
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import UserDetailsForm from "@/components/shared/UserDetailsForm";
-import { getUserById } from "@/lib/actions/user.actions";
+
+interface CustomPublicMetadata {
+  hasCompletedProfile?: boolean;
+}
+
+export const runtime = 'nodejs';
 
 async function Onboarding() {
   const { userId } = auth();
+  const user = await currentUser();
 
-  if (!userId) {
+  if (!userId || !user) {
     redirect('/sign-in');
   }
 
-  const user = await getUserById(userId);
+  // Check profile completion status from Clerk metadata
+  const metadata = user.publicMetadata as CustomPublicMetadata;
+  const hasCompletedProfile = metadata.hasCompletedProfile;
 
   // If user has already completed profile, redirect to home
-  if (user?.hasCompletedProfile) {
+  if (hasCompletedProfile) {
     redirect('/');
   }
 
