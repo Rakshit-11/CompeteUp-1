@@ -11,12 +11,16 @@ const nextConfig = {
     ]
   },
   experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000', 'competeup.vercel.app']
-    }
+    serverActions: true
   },
   webpack: (config) => {
-    config.externals = [...config.externals, 'mongoose'];
+    // Prevent mongoose from being bundled on the client side
+    if (!config.isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        mongoose: false,
+      };
+    }
     return config;
   }
 }

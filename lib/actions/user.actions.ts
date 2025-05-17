@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 
 import { connectToDatabase } from '@/lib/database'
 import User from '@/lib/database/models/user.model'
@@ -9,6 +10,8 @@ import Event from '@/lib/database/models/event.model'
 import { handleError } from '@/lib/utils'
 
 import { CreateUserParams, UpdateUserParams } from '@/types'
+
+export const runtime = 'nodejs' // Mark as Node.js runtime
 
 export async function createUser(user: CreateUserParams) {
   try {

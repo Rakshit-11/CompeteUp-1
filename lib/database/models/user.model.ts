@@ -1,6 +1,6 @@
-import { Schema, model, models, Model } from "mongoose";
+import { Schema, model, models, Model, Document } from "mongoose";
 
-interface IUser {
+export interface IUser extends Document {
   clerkId: string;
   email: string;
   username: string;
@@ -14,6 +14,8 @@ interface IUser {
   graduationEndYear?: number;
   phoneNumber?: string;
   hasCompletedProfile: boolean;
+  events: Schema.Types.ObjectId[];
+  orders: Schema.Types.ObjectId[];
 }
 
 const UserSchema = new Schema<IUser>({
@@ -29,7 +31,9 @@ const UserSchema = new Schema<IUser>({
   graduationStartYear: { type: Number, required: false, default: null },
   graduationEndYear: { type: Number, required: false, default: null },
   phoneNumber: { type: String, required: false, default: null },
-  hasCompletedProfile: { type: Boolean, default: false }
+  hasCompletedProfile: { type: Boolean, default: false },
+  events: [{ type: Schema.Types.ObjectId, ref: 'Event' }],
+  orders: [{ type: Schema.Types.ObjectId, ref: 'Order' }]
 }, {
   strict: true,
   timestamps: true,
