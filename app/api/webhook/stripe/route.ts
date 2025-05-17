@@ -4,6 +4,8 @@ import { headers } from 'next/headers'
 import { createOrder } from '@/lib/actions/order.actions'
 import { handleError, ErrorType } from '@/lib/utils'
 
+export const runtime = 'nodejs'
+
 // Maximum payload size for webhook (5MB)
 const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024;
 

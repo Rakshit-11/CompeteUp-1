@@ -1,9 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
-import { clerkClient } from '@clerk/nextjs'
-
 import { connectToDatabase } from '@/lib/database'
 import User from '@/lib/database/models/user.model'
 import Order from '@/lib/database/models/order.model'
@@ -19,15 +16,6 @@ export async function createUser(user: CreateUserParams) {
     await connectToDatabase()
 
     const newUser = await User.create(user)
-
-    // Update Clerk user metadata
-    await clerkClient.users.updateUserMetadata(user.clerkId, {
-      publicMetadata: {
-        userId: newUser._id,
-        hasCompletedProfile: false
-      }
-    })
-
     return JSON.parse(JSON.stringify(newUser))
   } catch (error) {
     handleError(error)
@@ -57,45 +45,13 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
       throw new Error('User not found')
     }
 
-    const updateFields = {
-      $set: {
-        collegeName: user.collegeName,
-        degree: user.degree,
-        specialization: user.specialization,
-        graduationStartYear: user.graduationStartYear,
-        graduationEndYear: user.graduationEndYear,
-        phoneNumber: user.phoneNumber,
-        hasCompletedProfile: user.hasCompletedProfile,
-        firstName: user.firstName || existingUser.firstName,
-        lastName: user.lastName || existingUser.lastName,
-        username: user.username || existingUser.username,
-        photo: user.photo || existingUser.photo
-      }
-    }
-
     const updatedUser = await User.findOneAndUpdate(
       { clerkId },
-      updateFields,
-      { 
-        new: true,
-        runValidators: true,
-        upsert: false
-      }
+      user,
+      { new: true }
     )
 
-    if (!updatedUser) {
-      throw new Error('User update failed')
-    }
-
-    // Update Clerk user metadata
-    if (user.hasCompletedProfile) {
-      await clerkClient.users.updateUserMetadata(clerkId, {
-        publicMetadata: {
-          hasCompletedProfile: true
-        }
-      })
-    }
-    
+    if (!updatedUser) throw new Error('User update failed')
     return JSON.parse(JSON.stringify(updatedUser))
   } catch (error) {
     handleError(error)
@@ -122,7 +78,10 @@ export async function deleteUser(clerkId: string) {
       ),
 
       // Update the 'orders' collection to remove references to the user
-      Order.updateMany({ _id: { $in: userToDelete.orders } }, { $unset: { buyer: 1 } }),
+      Order.updateMany(
+        { _id: { $in: userToDelete.orders } },
+        { $unset: { buyer: 1 } }
+      ),
     ])
 
     // Delete user

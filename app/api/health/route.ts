@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { checkDatabaseHealth } from '@/lib/database'
 
+export const runtime = 'nodejs'
+
 export async function GET() {
   try {
     // Check database health
