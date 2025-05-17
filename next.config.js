@@ -10,12 +10,19 @@ const nextConfig = {
       }
     ]
   },
-  webpack: (config) => {
-    // Prevent mongoose from being bundled on the client side
-    if (!config.isServer) {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        mongoose: false,
+        fs: false,
+        dns: false,
+        net: false,
+        tls: false,
+        'mongodb-client-encryption': false,
+        'aws4': false,
+        'supports-color': false,
+        'mongodb': false,
+        'mongoose': false
       };
     }
     return config;

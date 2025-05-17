@@ -1,23 +1,27 @@
 'use server';
 
 import mongoose, { Connection } from 'mongoose';
-import { handleError, ErrorType } from '../utils';
+import { handleError } from '../utils';
 
-export const runtime = 'nodejs';
+declare global {
+  var mongoose: {
+    conn: Connection | null;
+    promise: Promise<Connection> | null;
+  };
+}
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const MAX_RETRIES = 3;
 const RETRY_INTERVAL = 5000; // 5 seconds
 
-interface CachedConnection {
-  conn: Connection | null;
-  promise: Promise<Connection> | null;
-}
-
-let cached: CachedConnection = (global as any).mongoose || { conn: null, promise: null };
-
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env');
+}
+
+let cached = global.mongoose || { conn: null, promise: null };
+
+if (process.env.NODE_ENV !== 'production') {
+  global.mongoose = cached;
 }
 
 async function createConnection(retryCount = 0): Promise<Connection> {
@@ -81,36 +85,47 @@ async function createConnection(retryCount = 0): Promise<Connection> {
   }
 }
 
-export const connectToDatabase = async () => {
-  if (process.env.NODE_ENV === 'development') {
-    // Set mongoose debug mode only in development
-    mongoose.set('debug', true);
+export async function connectToDatabase() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 5000,
+      family: 4,
+      heartbeatFrequencyMS: 10000,
+      keepAlive: true,
+      retryWrites: true,
+      connectTimeoutMS: 30000,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI!, opts)
+      .then((mongoose) => {
+        console.log('MongoDB connected successfully');
+        return mongoose.connection;
+      })
+      .catch((error) => {
+        console.error('Failed to connect to MongoDB:', error);
+        throw error;
+      });
   }
 
   try {
-    if (cached.conn) {
-      return cached.conn;
-    }
-
-    if (!cached.promise) {
-      cached.promise = createConnection();
-    }
-
     cached.conn = await cached.promise;
     return cached.conn;
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
-    const errorResponse = handleError({
-      name: 'MongooseError',
-      message: 'Failed to establish database connection',
-      stack: error instanceof Error ? error.stack : undefined
-    });
-    throw new Error(errorResponse.message);
+    cached.promise = null;
+    throw error;
   }
 }
 
 // Health check function
-export const checkDatabaseHealth = async () => {
+export async function checkDatabaseHealth() {
   try {
     const conn = await connectToDatabase();
     const adminDb = conn.db.admin();
