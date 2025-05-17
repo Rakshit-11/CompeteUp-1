@@ -10,9 +10,6 @@ const nextConfig = {
       }
     ]
   },
-  experimental: {
-    serverActions: true
-  },
   webpack: (config) => {
     // Prevent mongoose from being bundled on the client side
     if (!config.isServer) {

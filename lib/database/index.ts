@@ -3,6 +3,8 @@
 import mongoose, { Connection } from 'mongoose';
 import { handleError, ErrorType } from '../utils';
 
+export const runtime = 'nodejs';
+
 const MONGODB_URI = process.env.MONGODB_URI;
 const MAX_RETRIES = 3;
 const RETRY_INTERVAL = 5000; // 5 seconds

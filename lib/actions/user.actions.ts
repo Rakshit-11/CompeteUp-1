@@ -11,8 +11,6 @@ import { handleError } from '@/lib/utils'
 
 import { CreateUserParams, UpdateUserParams } from '@/types'
 
-export const runtime = 'nodejs' // Mark as Node.js runtime
-
 export async function createUser(user: CreateUserParams) {
   try {
     await connectToDatabase()
