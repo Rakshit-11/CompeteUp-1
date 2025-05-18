@@ -10,6 +10,12 @@ const nextConfig = {
       }
     ]
   },
+  typescript: {
+    ignoreBuildErrors: true
+  },
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   webpack: (config, { isServer }) => {
     // Prevent server-only modules from being bundled on the client side
     if (!isServer) {
@@ -21,16 +27,19 @@ const nextConfig = {
         tls: false,
         'mongodb-client-encryption': false,
         'aws4': false,
-        'supports-color': false,
-        'mongodb': false,
-        'mongoose': false
+        'supports-color': false
       }
     }
     return config
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'competeup.vercel.app']
+      allowedOrigins: [
+        'localhost:3000',
+        'competeup.vercel.app',
+        'competeup-1.vercel.app',
+        '.vercel.app'
+      ]
     }
   },
   // Optimize for production

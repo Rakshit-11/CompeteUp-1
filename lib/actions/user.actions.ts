@@ -2,21 +2,23 @@
 
 import { revalidatePath } from 'next/cache'
 import { connectToDatabase } from '@/lib/database'
-import User from '@/lib/database/models/user.model'
-import Order from '@/lib/database/models/order.model'
-import Event from '@/lib/database/models/event.model'
+import { ObjectId } from 'mongodb'
 import { handleError } from '@/lib/utils'
-
 import { CreateUserParams, UpdateUserParams } from '@/types'
-
-export const runtime = 'nodejs'
 
 export async function createUser(user: CreateUserParams) {
   try {
-    await connectToDatabase()
+    const { db } = await connectToDatabase()
+    const usersCollection = db.collection('users')
 
-    const newUser = await User.create(user)
-    return JSON.parse(JSON.stringify(newUser))
+    const newUser = await usersCollection.insertOne({
+      ...user,
+      events: [],
+      orders: [],
+      createdAt: new Date()
+    })
+
+    return { ...user, _id: newUser.insertedId }
   } catch (error) {
     handleError(error)
   }
@@ -24,12 +26,13 @@ export async function createUser(user: CreateUserParams) {
 
 export async function getUserById(userId: string) {
   try {
-    await connectToDatabase()
+    const { db } = await connectToDatabase()
+    const usersCollection = db.collection('users')
 
-    const user = await User.findOne({ clerkId: userId })
+    const user = await usersCollection.findOne({ clerkId: userId })
 
     if (!user) throw new Error('User not found')
-    return JSON.parse(JSON.stringify(user))
+    return user
   } catch (error) {
     handleError(error)
   }
@@ -37,22 +40,23 @@ export async function getUserById(userId: string) {
 
 export async function updateUser(clerkId: string, user: UpdateUserParams) {
   try {
-    await connectToDatabase()
+    const { db } = await connectToDatabase()
+    const usersCollection = db.collection('users')
 
-    const existingUser = await User.findOne({ clerkId })
+    const existingUser = await usersCollection.findOne({ clerkId })
 
     if (!existingUser) {
       throw new Error('User not found')
     }
 
-    const updatedUser = await User.findOneAndUpdate(
+    const updatedUser = await usersCollection.findOneAndUpdate(
       { clerkId },
-      user,
-      { new: true }
+      { $set: user },
+      { returnDocument: 'after' }
     )
 
-    if (!updatedUser) throw new Error('User update failed')
-    return JSON.parse(JSON.stringify(updatedUser))
+    if (!updatedUser.value) throw new Error('User update failed')
+    return updatedUser.value
   } catch (error) {
     handleError(error)
   }
@@ -60,10 +64,13 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
 
 export async function deleteUser(clerkId: string) {
   try {
-    await connectToDatabase()
+    const { db } = await connectToDatabase()
+    const usersCollection = db.collection('users')
+    const eventsCollection = db.collection('events')
+    const ordersCollection = db.collection('orders')
 
     // Find user to delete
-    const userToDelete = await User.findOne({ clerkId })
+    const userToDelete = await usersCollection.findOne({ clerkId })
 
     if (!userToDelete) {
       throw new Error('User not found')
@@ -72,23 +79,23 @@ export async function deleteUser(clerkId: string) {
     // Unlink relationships
     await Promise.all([
       // Update the 'events' collection to remove references to the user
-      Event.updateMany(
-        { _id: { $in: userToDelete.events } },
+      eventsCollection.updateMany(
+        { _id: { $in: userToDelete.events?.map((id: string) => new ObjectId(id)) || [] } },
         { $pull: { organizer: userToDelete._id } }
       ),
 
       // Update the 'orders' collection to remove references to the user
-      Order.updateMany(
-        { _id: { $in: userToDelete.orders } },
+      ordersCollection.updateMany(
+        { _id: { $in: userToDelete.orders?.map((id: string) => new ObjectId(id)) || [] } },
         { $unset: { buyer: 1 } }
       ),
     ])
 
     // Delete user
-    const deletedUser = await User.findByIdAndDelete(userToDelete._id)
+    const deletedUser = await usersCollection.findOneAndDelete({ _id: userToDelete._id })
     revalidatePath('/')
 
-    return deletedUser ? JSON.parse(JSON.stringify(deletedUser)) : null
+    return deletedUser.value
   } catch (error) {
     handleError(error)
   }
